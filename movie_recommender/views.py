@@ -1,7 +1,9 @@
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.db.models import Q, Count
 from django.shortcuts import render, redirect
+from django.views import View
 
 from movie_recommender.models import Movie
 
@@ -64,6 +66,9 @@ def index(request):
             }
 
             return render(request, "index.html", context)
+
+class SetPreferencesView(LoginRequiredMixin,View):
+    pass
 
 
 

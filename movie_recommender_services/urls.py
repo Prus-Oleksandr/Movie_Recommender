@@ -17,6 +17,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from movie_recommender.views import index
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path("", index, name="index"),
+    path("set_preferences/", SetPreferencesView.as_view(), name="set_preferences"),
 ]
