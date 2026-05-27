@@ -9,7 +9,14 @@
   <h5 class="text-primary mb-3 fw-bold text-uppercase text-start fs-5 tracking-wider">Searching for: {{ search_mode }}</h5>
   <form hx-get="{% url 'manage_preferences' %}" hx-target="#search-area" hx-swap="innerHTML" class="d-flex gap-2">
     <input type="hidden" name="search_mode" value="{{ search_mode }}">
-    <input type="text" name="query" value="{{ request.GET.query }}" class="form-control bg-transparent text-white border-secondary rounded-2" placeholder="Enter name..." required>
+
+    <input type="text"
+           name="query"
+           value="{% if request.GET.query and not results %}{% else %}{{ request.GET.query|default:'' }}{% endif %}"
+           class="form-control bg-transparent text-white rounded-2 {% if request.GET.query and not results %}border-danger shadow-sm{% else %}border-secondary{% endif %}"
+           placeholder="{% if request.GET.query and not results %}Oops, nothing found for '{{ request.GET.query }}'...{% else %}Enter name...{% endif %}"
+           required>
+
     <input type="hidden" name="type" value="{{ search_mode }}">
     <button type="submit" class="btn btn-primary rounded-2 px-4">Search</button>
     <a hx-get="{% url 'manage_preferences' %}" hx-target="#search-area" hx-swap="innerHTML" class="btn btn-outline-secondary rounded-2">Close</a>
@@ -17,7 +24,7 @@
 </div>
 {% endif %}
 
-{% if results %}
+{% if request.GET.query and results %}
 <div class="mb-5">
   <h6 class="mb-3 text-secondary text-uppercase small fw-bold text-center">Search Results</h6>
   <div class="row row-cols-1 row-cols-md-3 g-3">
@@ -40,11 +47,16 @@
     {% endfor %}
   </div>
 </div>
+{% endif %}
 
 <style>
+  /* Стиль для красивого червоного тексту всередині інпуту, коли нічого не знайдено */
+  .border-danger::placeholder {
+    color: #dc3545 !important;
+    opacity: 0.9;
+  }
   .hover-success:hover {
     color: #198754 !important;
     background: transparent;
   }
 </style>
-{% endif %}

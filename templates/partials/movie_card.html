@@ -1,25 +1,66 @@
-<div class="card bg-dark text-white mx-auto border-secondary shadow" style="max-width: 450px;">
-  {% if selected_movie.poster %}
-    <img src="{{ selected_movie.poster }}" class="card-img-top img-fluid" alt="{{ selected_movie.title }}" style="aspect-ratio: 2/3; object-fit: cover;">
-  {% else %}
-    <div class="bg-black text-muted d-flex flex-column align-items-center justify-content-center border-bottom border-secondary rounded-top" style="aspect-ratio: 2/3;">
-      <span class="fs-1">🎬</span>
-      <small>No Poster</small>
+<div class="card bg-dark text-white mx-auto border-secondary shadow p-3 p-md-4" style="max-width: 950px;">
+  <div class="row g-4 align-items-center text-start">
+
+    <div class="col-md-5 col-lg-5 text-center">
+      {% if selected_movie.poster %}
+        <img src="{{ selected_movie.poster }}" class="img-fluid rounded border border-secondary shadow-sm w-100" alt="{{ selected_movie.title }}" style="max-height: 480px; object-fit: cover; aspect-ratio: 2/3;">
+      {% else %}
+        <div class="bg-black text-muted d-flex flex-column align-items-center justify-content-center border border-secondary rounded w-100" style="aspect-ratio: 2/3; max-height: 480px; min-height: 350px;">
+          <span class="fs-1">🎬</span>
+          <small>No Poster</small>
+        </div>
+      {% endif %}
     </div>
-  {% endif %}
 
-  <div class="card-body p-4 text-start">
-    <h2 class="card-title fw-bold text-white fs-4 mb-1">{{ selected_movie.title }}</h2>
-    {% if selected_movie.release_year %}
-      <p class="text-secondary small mb-3">{{ selected_movie.release_year }}</p>
-    {% endif %}
+    <div class="col-md-7 col-lg-7">
+      <div>
+        <h2 class="card-title fw-bold text-white fs-2 mb-1">{{ selected_movie.title }}</h2>
 
-    {% if selected_movie.genres.exists %}
-      <div class="mb-2">
-        <span class="text-secondary small">Genres: </span>
-        {% for genre in selected_movie.genres.all %}<span class="badge bg-secondary">{{ genre.name }}</span> {% endfor %}
+        {% if selected_movie.release_year %}
+          <p class="text-secondary small mb-3">{{ selected_movie.release_year }}</p>
+        {% endif %}
+
+        {% if selected_movie.description %}
+          <p class="text-light-50 lh-base mb-0" style="font-size: 0.95rem;">
+            {{ selected_movie.description }}
+          </p>
+        {% endif %}
       </div>
-    {% endif %}
+
+      <div class="mt-3 pt-3 border-top border-secondary border-opacity-25" style="font-size: 0.9rem;">
+        {% if selected_movie.directors.exists %}
+          <div class="mb-2">
+            <span class="text-secondary fw-semibold">Director:</span>
+            <span class="text-white-50 ms-1">
+              {% for director in selected_movie.directors.all %}
+                {{ director.full_name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </span>
+          </div>
+        {% endif %}
+
+        {% if selected_movie.actors.exists %}
+          <div class="mb-2">
+            <span class="text-secondary fw-semibold">Starring:</span>
+            <span class="text-white-50 ms-1">
+              {% for actor in selected_movie.actors.all %}
+                {{ actor.full_name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </span>
+          </div>
+        {% endif %}
+
+        {% if selected_movie.genres.exists %}
+          <div class="mb-0 d-flex flex-wrap align-items-center gap-1">
+            <span class="text-secondary fw-semibold me-1">Genres:</span>
+            {% for genre in selected_movie.genres.all %}
+              <span class="badge bg-secondary bg-opacity-75 style-badge" style="font-size: 0.75rem;">{{ genre.name }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
   </div>
 </div>
 
