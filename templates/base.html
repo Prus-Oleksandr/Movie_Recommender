@@ -8,8 +8,8 @@
 </head>
 <body class="bg-dark text-light position-relative">
 
-  <button class="btn btn-outline-light px-4 py-2.5 fs-3 fw-medium d-inline-flex align-items-center gap-2 position-absolute top-0 start-0 m-3" style="z-index: 1030;" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
-    <i class="bi bi-list fs-2"></i> Menu
+  <button class="btn btn-link text-white-50 p-2 position-absolute top-0 start-0 m-4 text-decoration-none custom-menu-btn" style="z-index: 1030; line-height: 1;" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
+    <i class="bi bi-list" style="font-size: 3.5rem;"></i>
   </button>
 
   {% include "includes/_sidebar.html" %}
@@ -19,5 +19,13 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <style>
+    .custom-menu-btn:hover {
+      color: #fff !important;
+      transform: scale(1.05);
+      transition: all 0.2s ease-in-out;
+    }
+  </style>
 </body>
 </html>
