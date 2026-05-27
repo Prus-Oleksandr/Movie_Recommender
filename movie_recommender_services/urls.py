@@ -14,8 +14,10 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.views.generic import RedirectView
 
 from movie_recommender.views import index, SetPreferencesView
 
@@ -23,4 +25,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("", index, name="index"),
     path("set_preferences/", SetPreferencesView.as_view(), name="set_preferences"),
+    path("accounts/", include("allauth.urls")),
+    path("accounts/3rdparty", RedirectView.as_view(pattern_name="index",permanent=False))
 ]
