@@ -92,3 +92,48 @@ class SetPreferencesViewTest(TestCase):
         self.assertRedirects(response, reverse("index"))
         self.assertEqual(self.user.watched_movies.count(), 3)
         self.assertIn(self.genre, self.user.favorite_genres.all())
+
+
+class ManagePreferencesViewTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="manager", password="password123")
+        self.genre = Genre.objects.create(name="Action")
+        self.url = reverse("manage_preferences")
+
+    def test_get_manage_preferences_page(self):
+        self.client.login(username="manager", password="password123")
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "manage_preferences.html")
+
+    def test_htmx_search_returns_partial_template(self):
+        self.client.login(username="manager", password="password123")
+        headers = {"HTTP_HX_Request": "true"}
+
+        response = self.client.get(self.url, {"query": "Action", "type": "genre"}, **headers)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "partials/search_block.html")
+        self.assertIn(self.genre, response.context["results"])
+
+    def test_htmx_post_add_genre_triggers_refresh(self):
+        self.client.login(username="manager", password="password123")
+        headers = {"HTTP_HX_Request": "true"}
+
+        response = self.client.post(self.url, {"action": "add_genre", "item_id": str(self.genre.id)}, **headers)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("HX-Refresh"), "true")
+        self.assertIn(self.genre, self.user.favorite_genres.all())
+
+    def test_htmx_post_remove_genre_returns_empty_response(self):
+        self.user.favorite_genres.add(self.genre)
+        self.client.login(username="manager", password="password123")
+        headers = {"HTTP_HX_Request": "true"}
+
+        response = self.client.post(self.url, {"action": "remove_genre", "item_id": str(self.genre.id)}, **headers)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"")
+        self.assertNotIn(self.genre, self.user.favorite_genres.all())
