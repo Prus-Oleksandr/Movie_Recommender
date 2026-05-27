@@ -15,3 +15,12 @@ class SetPreferencesForm(forms.Form):
         if chosen_movies and (len(chosen_movies) < 3 or len(chosen_movies) > 7):
             raise forms.ValidationError("Please select between 3 and 7 movies")
         return chosen_movies
+
+class SearchPreferencesForm(forms.Form):
+    TYPE_CHOICES = [
+        ("genre", "Genre"),
+        ("director", "Director"),
+        ("actor", "Actor"),
+    ]
+    query = forms.CharField(required=True, strip=True)
+    type = forms.ChoiceField(choices=TYPE_CHOICES, required=True)
