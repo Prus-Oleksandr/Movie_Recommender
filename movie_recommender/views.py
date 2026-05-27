@@ -51,7 +51,7 @@ def index(request):
     }
     return render(request, "index.html", context)
 
-# class SetPreferencesView(LoginRequiredMixin,View):
+class SetPreferencesView(LoginRequiredMixin,View):
 
 
 
