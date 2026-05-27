@@ -1,43 +1,50 @@
-<div class="d-flex justify-content-center gap-3 mb-5">
-  <a hx-get="?search_mode=genre" hx-target="#search-area" hx-swap="innerHTML" class="btn btn-outline-primary px-4 {% if search_mode == 'genre' %}active{% endif %}">Add Genres</a>
-  <a hx-get="?search_mode=actor" hx-target="#search-area" hx-swap="innerHTML" class="btn btn-outline-primary px-4 {% if search_mode == 'actor' %}active{% endif %}">Add Actors</a>
-  <a hx-get="?search_mode=director" hx-target="#search-area" hx-swap="innerHTML" class="btn btn-outline-primary px-4 {% if search_mode == 'director' %}active{% endif %}">Add Directors</a>
+<div class="d-flex justify-content-center gap-2 mb-4">
+  <a hx-get="?search_mode=genre" hx-target="#search-area" hx-swap="innerHTML" class="btn btn-outline-primary rounded-pill px-4 {% if search_mode == 'genre' %}active{% endif %}">Add Genres</a>
+  <a hx-get="?search_mode=actor" hx-target="#search-area" hx-swap="innerHTML" class="btn btn-outline-primary rounded-pill px-4 {% if search_mode == 'actor' %}active{% endif %}">Add Actors</a>
+  <a hx-get="?search_mode=director" hx-target="#search-area" hx-swap="innerHTML" class="btn btn-outline-primary rounded-pill px-4 {% if search_mode == 'director' %}active{% endif %}">Add Directors</a>
 </div>
 
 {% if search_mode %}
-<div class="card bg-secondary bg-opacity-10 border-primary mb-5 shadow-sm">
-  <div class="card-body p-4">
-    <h5 class="text-primary mb-3">Searching for: {{ search_mode|title }}</h5>
-    <form hx-get="{% url 'manage_preferences' %}" hx-target="#search-area" hx-swap="innerHTML" class="d-flex gap-2">
-      <input type="hidden" name="search_mode" value="{{ search_mode }}">
-      <input type="text" name="query" value="{{ request.GET.query }}" class="form-control bg-dark text-white border-secondary" placeholder="Enter name..." required>
-      <input type="hidden" name="type" value="{{ search_mode }}">
-      <button type="submit" class="btn btn-primary px-4">Search</button>
-      <a hx-get="{% url 'manage_preferences' %}" hx-target="#search-area" hx-swap="innerHTML" class="btn btn-outline-secondary">Close</a>
-    </form>
-  </div>
+<div class="border border-secondary border-opacity-50 p-4 rounded-3 mb-5 bg-dark bg-opacity-50 mx-auto" style="max-width: 650px;">
+  <h5 class="text-primary mb-3 fw-bold text-uppercase text-start fs-5 tracking-wider">Searching for: {{ search_mode }}</h5>
+  <form hx-get="{% url 'manage_preferences' %}" hx-target="#search-area" hx-swap="innerHTML" class="d-flex gap-2">
+    <input type="hidden" name="search_mode" value="{{ search_mode }}">
+    <input type="text" name="query" value="{{ request.GET.query }}" class="form-control bg-transparent text-white border-secondary rounded-2" placeholder="Enter name..." required>
+    <input type="hidden" name="type" value="{{ search_mode }}">
+    <button type="submit" class="btn btn-primary rounded-2 px-4">Search</button>
+    <a hx-get="{% url 'manage_preferences' %}" hx-target="#search-area" hx-swap="innerHTML" class="btn btn-outline-secondary rounded-2">Close</a>
+  </form>
 </div>
 {% endif %}
 
 {% if results %}
 <div class="mb-5">
-  <h5 class="mb-3 text-white-50">Search Results</h5>
-  <div class="row row-cols-1 row-cols-md-2 g-2">
+  <h6 class="mb-3 text-secondary text-uppercase small fw-bold text-center">Search Results</h6>
+  <div class="row row-cols-1 row-cols-md-3 g-3">
     {% for item in results %}
       <div class="col">
-        <div class="p-3 bg-secondary bg-opacity-25 rounded d-flex justify-content-between align-items-center">
-          <span class="fw-medium">
+        <div class="p-3 border border-secondary border-opacity-25 rounded-3 d-flex justify-content-between align-items-center bg-secondary bg-opacity-10">
+          <span class="text-light">
             {% if request.GET.type == "genre" %}{{ item.name }}{% else %}{{ item.full_name }}{% endif %}
           </span>
           <form method="post" action="{% url 'manage_preferences' %}" class="m-0">
             {% csrf_token %}
             <input type="hidden" name="action" value="add_{{ request.GET.type }}">
             <input type="hidden" name="item_id" value="{{ item.id }}">
-            <button class="btn btn-sm btn-light rounded-circle" style="width: 30px; height: 30px;">+</button>
+            <button type="submit" class="btn btn-sm text-primary hover-success p-1">
+              <i class="bi bi-plus-lg fs-5"></i>
+            </button>
           </form>
         </div>
       </div>
     {% endfor %}
   </div>
 </div>
+
+<style>
+  .hover-success:hover {
+    color: #198754 !important;
+    background: transparent;
+  }
+</style>
 {% endif %}
