@@ -64,7 +64,7 @@ class MovieQuerySet(models.QuerySet):
                     + F("directors_matches")
             )
 
-            .order_by("-total_matches", "id")
+            .order_by("-total_matches", "?")
 
             .distinct()
         )
