@@ -83,32 +83,50 @@ def index(request):
 
     return render(request, "index.html", context=context)
 
-class SetPreferencesView(LoginRequiredMixin,View):
+
+"""
+Displays a list of 10 random movies for the user to select their favorites.
+The GET request renders a form containing these movies. Upon submission, the 
+POST request processes the chosen selection, extracts associated metadata 
+(genres, actors, and directors), and saves these attributes to the user's profile 
+to build their personal preferences.
+"""
+class SetPreferencesView(LoginRequiredMixin, View):
     template_name = "set_preferences.html"
 
     def _get_random_movie(self):
         all_movies = list(Movie.objects.all())
         return random.sample(all_movies, min(len(all_movies), 10))
 
-    def get(self, request):
+    def _get_form_context(self, form=None):
+        """Helper to prepare the form and random movie selection for the template."""
         random_movies = self._get_random_movie()
-        form = SetPreferencesForm()
-        form.fields["chosen_movies"].queryset = Movie.objects.filter(id__in=[m.id for m in random_movies])
+        if not form:
+            form = SetPreferencesForm()
+
+        # Set the queryset to only include the randomly selected movies
+        form.fields["chosen_movies"].queryset = Movie.objects.filter(
+            id__in=[m.id for m in random_movies]
+        )
+
+        # Connect movies to widgets for the template
         movies_with_widgets = list(zip(random_movies, form["chosen_movies"]))
 
-        context = {
+        return {
             "form": form,
-            "movies_with_widgets": movies_with_widgets
+            "movies_with_widgets": movies_with_widgets,
+            "errors": form.errors.get("chosen_movies", [""])[0] if form.errors else ""
         }
-        return render(request, self.template_name, context=context)
+
+    def get(self, request):
+        return render(request, self.template_name, context=self._get_form_context())
 
     def post(self, request):
         form = SetPreferencesForm(request.POST)
-        form.fields["chosen_movies"].queryset = Movie.objects.prefetch_related(
-            "genres",
-            "directors",
-            "actors"
-        )
+
+        # Allow the form to validate against all movies that could have been selected
+        form.fields["chosen_movies"].queryset = Movie.objects.all()
+
         if form.is_valid():
             chosen_movies = form.cleaned_data["chosen_movies"]
             user = request.user
@@ -129,17 +147,8 @@ class SetPreferencesView(LoginRequiredMixin,View):
 
             return redirect("index")
 
-        random_movies = self._get_random_movie()
-        form = SetPreferencesForm()
-        form.fields["chosen_movies"].queryset = Movie.objects.filter(id__in=[m.id for m in random_movies])
-        movies_with_widgets = list(zip(random_movies, form["chosen_movies"]))
-
-        context = {
-            "form": form,
-            "movies_with_widgets": movies_with_widgets,
-            "errors": form.errors.get("chosen_movies", [""])[0]
-        }
-        return render(request, self.template_name, context=context)
+        # If invalid, pass the form with errors back to the context helper
+        return render(request, self.template_name, context=self._get_form_context(form=form))
 
 class ManagePreferencesView(LoginRequiredMixin, View):
     template_name = "manage_preferences.html"

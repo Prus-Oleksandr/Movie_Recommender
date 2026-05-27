@@ -97,6 +97,12 @@ class SetPreferencesViewTest(TestCase):
         self.assertEqual(self.user.watched_movies.count(), 3)
         self.assertIn(self.genre, self.user.favorite_genres.all())
 
+    def test_get_context_helper_prepares_correct_queryset(self):
+        self.client.login(username="newuser", password="password123")
+        response = self.client.get(self.url)
+        form = response.context["form"]
+        self.assertLessEqual(form.fields["chosen_movies"].queryset.count(), 10)
+
 
 class ManagePreferencesViewTest(TestCase):
     def setUp(self):
