@@ -1,0 +1,39 @@
+<div class="card bg-dark text-white mx-auto border-secondary shadow" style="max-width: 450px;">
+  {% if selected_movie.poster %}
+    <img src="{{ selected_movie.poster }}" class="card-img-top img-fluid" alt="{{ selected_movie.title }}" style="aspect-ratio: 2/3; object-fit: cover;">
+  {% else %}
+    <div class="bg-black text-muted d-flex flex-column align-items-center justify-content-center border-bottom border-secondary rounded-top" style="aspect-ratio: 2/3;">
+      <span class="fs-1">🎬</span>
+      <small>No Poster</small>
+    </div>
+  {% endif %}
+
+  <div class="card-body p-4 text-start">
+    <h2 class="card-title fw-bold text-white fs-4 mb-1">{{ selected_movie.title }}</h2>
+    {% if selected_movie.release_year %}
+      <p class="text-secondary small mb-3">{{ selected_movie.release_year }}</p>
+    {% endif %}
+
+    {% if selected_movie.genres.exists %}
+      <div class="mb-2">
+        <span class="text-secondary small">Genres: </span>
+        {% for genre in selected_movie.genres.all %}<span class="badge bg-secondary">{{ genre.name }}</span> {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="mt-4 d-flex justify-content-center gap-3">
+  <a href="{% url 'manage_preferences' %}" class="btn btn-outline-light fw-bold px-4 py-2 rounded-pill">
+    ⚙️ Manage Preferences
+  </a>
+
+  <form hx-post="{% url 'index' %}" hx-target="#movie-display" hx-swap="innerHTML" class="m-0">
+    {% csrf_token %}
+    <input type="hidden" name="movie_id" value="{{ selected_movie.id }}">
+    <input type="hidden" name="action" value="skip">
+    <button type="submit" class="btn btn-light text-dark fw-bold px-4 py-2 rounded-pill shadow-sm">
+      🔄 Next Movie
+    </button>
+  </form>
+</div>

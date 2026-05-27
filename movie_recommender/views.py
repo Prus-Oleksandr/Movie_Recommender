@@ -1,10 +1,10 @@
 import random
-from pyexpat.errors import messages
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.views import View
 
@@ -14,47 +14,57 @@ from movie_recommender.models import Movie, Genre, Director, Actor
 User = get_user_model()
 @login_required
 def index(request):
-    current_user = request.user
-    user_with_prefs  = User.objects.prefetch_related(
-        "favorite_genres",
-        "favorite_directors",
-        "favorite_actors"
-    ).get(pk=current_user.pk)
+  current_user = request.user
+  user_with_prefs = User.objects.prefetch_related(
+    "favorite_genres",
+    "favorite_directors",
+    "favorite_actors"
+  ).get(pk=current_user.pk)
 
-    if (
-            not user_with_prefs.favorite_genres.exists()
-            and not user_with_prefs.favorite_directors.exists()
-            and not user_with_prefs.favorite_actors.exists()
-    ):
-        return redirect("set_preferences") #redirect to the preferences page
+  if (
+    not user_with_prefs.favorite_genres.exists()
+    and not user_with_prefs.favorite_directors.exists()
+    and not user_with_prefs.favorite_actors.exists()
+  ):
+    return redirect("set_preferences")
 
-    if "session_seen_movies" not in request.session:
-        request.session["session_seen_movies"] = []
+  if "session_seen_movies" not in request.session:
+    request.session["session_seen_movies"] = []
 
-    session_seen_movies_ids = request.session["session_seen_movies"]
-
-    if request.method == "POST":
-        current_movie_id = request.POST.get("movie_id")
-        if current_movie_id:
-            current_movie = int(current_movie_id)
-            seen_list = request.session.get("session_seen_movies", [])
-            if current_movie not in seen_list:
-                seen_list.append(current_movie)
-                request.session["session_seen_movies"] = seen_list
-                request.session.modified = True
-                return redirect("index")
-
-    recommended_movies = Movie.objects.recommended_for_user(user_with_prefs,request.session["session_seen_movies"])
-
-    if not recommended_movies.exists():
-        request.session["session_seen_movies"] = []
+  if request.method == "POST":
+    current_movie_id = request.POST.get("movie_id")
+    if current_movie_id:
+      current_movie = int(current_movie_id)
+      seen_list = request.session.get("session_seen_movies", [])
+      if current_movie not in seen_list:
+        seen_list.append(current_movie)
+        request.session["session_seen_movies"] = seen_list
         request.session.modified = True
+
+        if request.headers.get("HX-Request"):
+          recommended_movies = Movie.objects.recommended_for_user(user_with_prefs, request.session["session_seen_movies"])
+          if not recommended_movies.exists():
+            request.session["session_seen_movies"] = []
+            request.session.modified = True
+            recommended_movies = Movie.objects.recommended_for_user(user_with_prefs, [])
+          context = {
+            "selected_movie": recommended_movies.first(),
+          }
+          return render(request, "partials/movie_card.html", context=context)
+
         return redirect("index")
 
-    context = {
-        "selected_movie": recommended_movies.first(),
-    }
-    return render(request, "index.html", context=context)
+  recommended_movies = Movie.objects.recommended_for_user(user_with_prefs, request.session["session_seen_movies"])
+
+  if not recommended_movies.exists():
+    request.session["session_seen_movies"] = []
+    request.session.modified = True
+    return redirect("index")
+
+  context = {
+    "selected_movie": recommended_movies.first(),
+  }
+  return render(request, "index.html", context=context)
 
 class SetPreferencesView(LoginRequiredMixin,View):
     template_name = "set_preferences.html"
@@ -116,6 +126,7 @@ class SetPreferencesView(LoginRequiredMixin,View):
 
 class ManagePreferencesView(LoginRequiredMixin, View):
     template_name = "manage_preferences.html"
+
     def get(self, request):
         user = User.objects.prefetch_related(
             "favorite_genres",
@@ -137,14 +148,22 @@ class ManagePreferencesView(LoginRequiredMixin, View):
                     results = Actor.objects.filter(full_name__icontains=query)
                 elif search_type == "director":
                     results = Director.objects.filter(full_name__icontains=query)
+
         context = {
-            "favorite_genres": user.favorite_genres.all(),
-            "favorite_actors": user.favorite_actors.all(),
-            "favorite_directors": user.favorite_directors.all(),
+            "sections": [
+                {"title": "Favorite Genres", "type": "genre", "items": user.favorite_genres.all()},
+                {"title": "Favorite Actors", "type": "actor", "items": user.favorite_actors.all()},
+                {"title": "Favorite Directors", "type": "director", "items": user.favorite_directors.all()},
+            ],
             "results": results,
             "search_mode": search_mode,
         }
+
+        if request.headers.get("HX-Request"):
+            return render(request, "partials/search_block.html", context=context)
+
         return render(request, self.template_name, context=context)
+
     def post(self, request):
         action = request.POST.get("action")
         item_id = request.POST.get("item_id")
@@ -153,7 +172,7 @@ class ManagePreferencesView(LoginRequiredMixin, View):
             return redirect("manage_preferences")
 
         item_id = int(item_id)
-        user = request.user
+        user: User = request.user
 
         try:
             if action == "remove_genre":
@@ -168,8 +187,18 @@ class ManagePreferencesView(LoginRequiredMixin, View):
                 user.favorite_actors.add(item_id)
             elif action == "add_director":
                 user.favorite_directors.add(item_id)
-        except ObjectDoesNotExist:
-            messages.error(request, "Item does not exist")
-        except ValueError:
-            messages.error(request, "Invalid input")
+
+        except (ObjectDoesNotExist, ValueError):
+            if request.headers.get("HX-Request"):
+                return HttpResponse("Помилка", status=400)
+            return redirect("manage_preferences")
+
+        if request.headers.get("HX-Request"):
+            if "remove" in action:
+                return HttpResponse("")
+
+            response = HttpResponse("")
+            response["HX-Refresh"] = "true"
+            return response
+
         return redirect("manage_preferences")
