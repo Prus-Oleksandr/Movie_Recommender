@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Initial Setup — Movie Recommender{% endblock %}
+
+{% block content %}
+<div class="container text-light my-5" data-bs-theme="dark" hx-boost="true">
+
+    <div class="text-center mb-5">
+        <h1 class="fw-bold text-white mb-3">Welcome to Movie Recommender!</h1>
+        <div class="p-3 bg-dark border border-secondary rounded-3 d-inline-block shadow-sm" style="max-width: 600px;">
+            <p class="text-white fs-5 mb-0 fw-semibold">
+                💡 Please select between 3 and 7 movies you like so we can tailor your recommendations:
+            </p>
+        </div>
+    </div>
+
+    {% if error_message %}
+        <div class="alert alert-danger border-danger bg-danger bg-opacity-10 text-center mx-auto mb-4 rounded-pill fw-bold" style="max-width: 500px;">
+            {{ error_message }}
+        </div>
+    {% endif %}
+
+    <div class="bg-dark p-4 rounded-3 border border-secondary shadow">
+        <form method="post" action="{% url 'set_preferences' %}">
+            {% csrf_token %}
+
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3 mb-4">
+                {% for movie, widget in movies_with_widgets %}
+                    <div class="col">
+                        {{ widget.tag }}
+
+                        <label class="btn btn-outline-light w-100 h-100 p-2 d-flex flex-column justify-content-between align-items-center rounded-3" for="{{ widget.id_for_label }}">
+
+                            {% if movie.poster %}
+                                <img src="{{ movie.poster }}" class="img-fluid mb-2 rounded shadow-sm" alt="{{ movie.title }}" style="aspect-ratio: 2/3; object-fit: cover;">
+                            {% else %}
+                                <div class="bg-transparent text-muted mb-2 d-flex flex-column align-items-center justify-content-center w-100 border border-secondary rounded shadow-sm" style="aspect-ratio: 2/3;">
+                                    <span class="fs-2">🎬</span>
+                                    <small class="text-center px-1">No Poster</small>
+                                </div>
+                            {% endif %}
+
+                            <div class="w-100 text-center">
+                                <span class="small d-block fw-semibold text-truncate" title="{{ movie.title }}">
+                                    {{ movie.title }}
+                                </span>
+                                {% if movie.release_year %}
+                                    <small class="text-muted d-block mt-1">{{ movie.release_year }}</small>
+                                {% endif %}
+                            </div>
+
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="text-center border-top border-secondary pt-4">
+                <button type="submit" class="btn btn-light text-dark fw-bold px-5 py-2 btn-lg rounded-pill shadow-sm">
+                    Save and Continue
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
