@@ -1,10 +1,184 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block content %}
+<div class="container my-5">
+
+  {% if messages %}
+    <div class="row justify-content-center mb-4">
+      <div class="col-lg-12">
+        {% for message in messages %}
+          <div class="alert alert-danger bg-danger bg-opacity-10 text-white border-secondary alert-dismissible fade show rounded-3" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="row justify-content-center">
+    <div class="col-lg-12">
+      <div class="bg-dark p-4 p-md-5 rounded-4 text-light shadow-lg">
+
+        <div class="text-center mb-5">
+          <h2 class="fw-bold mb-3">Manage Your Preferences</h2>
+          <p class="text-secondary">Add genres, actors, and directors to personalize your movie recommendations.</p>
+
+          <div class="mt-4">
+            <a href="{% url 'set_preferences' %}" class="btn btn-outline-warning px-4 py-2 fw-semibold">
+              <i class="bi bi-film me-2"></i> Add more movies you like
+            </a>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3 mb-5">
+          <a href="?search_mode=genre" class="btn btn-outline-primary px-4 {% if request.GET.search_mode == 'genre' %}active{% endif %}">Add Genres</a>
+          <a href="?search_mode=actor" class="btn btn-outline-primary px-4 {% if request.GET.search_mode == 'actor' %}active{% endif %}">Add Actors</a>
+          <a href="?search_mode=director" class="btn btn-outline-primary px-4 {% if request.GET.search_mode == 'director' %}active{% endif %}">Add Directors</a>
+        </div>
+
+        {% if request.GET.search_mode %}
+        <div class="card bg-secondary bg-opacity-10 border-primary mb-5 shadow-sm">
+          <div class="card-body p-4">
+            <h5 class="text-primary mb-3">Searching for: {{ request.GET.search_mode|title }}</h5>
+            <form method="get" action="{% url 'manage_preferences' %}" class="d-flex gap-2">
+              <input type="hidden" name="search_mode" value="{{ request.GET.search_mode }}">
+
+              <input type="text" name="query" value="{{ request.GET.query }}" class="form-control bg-dark text-white border-secondary" placeholder="Enter name..." required>
+              <input type="hidden" name="type" value="{{ request.GET.search_mode }}">
+
+              <button type="submit" class="btn btn-primary px-4">Search</button>
+              <a href="{% url 'manage_preferences' %}" class="btn btn-outline-secondary">Close</a>
+            </form>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if results %}
+        <div class="mb-5">
+          <h5 class="mb-3 text-white-50">Search Results</h5>
+          <div class="row row-cols-1 row-cols-md-2 g-2">
+            {% for item in results %}
+              <div class="col">
+                <div class="p-3 bg-secondary bg-opacity-25 rounded d-flex justify-content-between align-items-center">
+                  <span class="fw-medium">
+                    {% if request.GET.type == "genre" %}{{ item.name }}{% else %}{{ item.full_name }}{% endif %}
+                  </span>
+                  <form method="post" action="{% url 'manage_preferences' %}" class="m-0">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_{{ request.GET.type }}">
+                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                    <button class="btn btn-sm btn-light rounded-circle" style="width: 30px; height: 30px;">+</button>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="row g-4 mt-2">
+
+          <div class="col-md-4">
+            <h6 class="text-primary border-bottom border-primary pb-2 mb-3">Favorite Genres</h6>
+            {% for g in favorite_genres|slice:":5" %}
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom border-secondary">
+                <span>{{ g.name }}</span>
+                <form method="post" action="{% url 'manage_preferences' %}" class="m-0">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="remove_genre">
+                  <input type="hidden" name="item_id" value="{{ g.id }}">
+                  <button class="btn btn-sm btn-outline-danger">x</button>
+                </form>
+              </div>
+            {% endfor %}
+
+            {% if favorite_genres.count > 5 %}
+              <div class="collapse" id="collapseGenres">
+                {% for g in favorite_genres|slice:"5:" %}
+                  <div class="d-flex justify-content-between align-items-center p-2 border-bottom border-secondary">
+                    <span>{{ g.name }}</span>
+                    <form method="post" action="{% url 'manage_preferences' %}" class="m-0">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="remove_genre">
+                      <input type="hidden" name="item_id" value="{{ g.id }}">
+                      <button class="btn btn-sm btn-outline-danger">x</button>
+                    </form>
+                  </div>
+                {% endfor %}
+              </div>
+              <button class="btn btn-sm btn-link text-primary mt-2 p-0" data-bs-toggle="collapse" data-bs-target="#collapseGenres">Show more / less</button>
+            {% endif %}
+          </div>
+
+          <div class="col-md-4">
+            <h6 class="text-primary border-bottom border-primary pb-2 mb-3">Favorite Actors</h6>
+            {% for a in favorite_actors|slice:":5" %}
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom border-secondary">
+                <span>{{ a.full_name }}</span>
+                <form method="post" action="{% url 'manage_preferences' %}" class="m-0">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="remove_actor">
+                  <input type="hidden" name="item_id" value="{{ a.id }}">
+                  <button class="btn btn-sm btn-outline-danger">x</button>
+                </form>
+              </div>
+            {% endfor %}
+
+            {% if favorite_actors.count > 5 %}
+              <div class="collapse" id="collapseActors">
+                {% for a in favorite_actors|slice:"5:" %}
+                  <div class="d-flex justify-content-between align-items-center p-2 border-bottom border-secondary">
+                    <span>{{ a.full_name }}</span>
+                    <form method="post" action="{% url 'manage_preferences' %}" class="m-0">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="remove_actor">
+                      <input type="hidden" name="item_id" value="{{ a.id }}">
+                      <button class="btn btn-sm btn-outline-danger">x</button>
+                    </form>
+                  </div>
+                {% endfor %}
+              </div>
+              <button class="btn btn-sm btn-link text-primary mt-2 p-0" data-bs-toggle="collapse" data-bs-target="#collapseActors">Show more / less</button>
+            {% endif %}
+          </div>
+
+          <div class="col-md-4">
+            <h6 class="text-primary border-bottom border-primary pb-2 mb-3">Favorite Directors</h6>
+            {% for d in favorite_directors|slice:":5" %}
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom border-secondary">
+                <span>{{ d.full_name }}</span>
+                <form method="post" action="{% url 'manage_preferences' %}" class="m-0">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="remove_director">
+                  <input type="hidden" name="item_id" value="{{ d.id }}">
+                  <button class="btn btn-sm btn-outline-danger">x</button>
+                </form>
+              </div>
+            {% endfor %}
+
+            {% if favorite_directors.count > 5 %}
+              <div class="collapse" id="collapseDirectors">
+                {% for d in favorite_directors|slice:"5:" %}
+                  <div class="d-flex justify-content-between align-items-center p-2 border-bottom border-secondary">
+                    <span>{{ d.full_name }}</span>
+                    <form method="post" action="{% url 'manage_preferences' %}" class="m-0">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="remove_director">
+                      <input type="hidden" name="item_id" value="{{ d.id }}">
+                      <button class="btn btn-sm btn-outline-danger">x</button>
+                    </form>
+                  </div>
+                {% endfor %}
+              </div>
+              <button class="btn btn-sm btn-link text-primary mt-2 p-0" data-bs-toggle="collapse" data-bs-target="#collapseDirectors">Show more / less</button>
+            {% endif %}
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

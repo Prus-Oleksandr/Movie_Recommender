@@ -173,16 +173,3 @@ class ManagePreferencesView(LoginRequiredMixin, View):
         except ValueError:
             messages.error(request, "Invalid input")
         return redirect("manage_preferences")
-
-
-
-
-
-
-
-
-
-
-
-
-
