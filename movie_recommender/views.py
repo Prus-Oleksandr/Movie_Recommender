@@ -12,59 +12,76 @@ from movie_recommender.forms import SetPreferencesForm, SearchPreferencesForm
 from movie_recommender.models import Movie, Genre, Director, Actor
 
 User = get_user_model()
+
+"""
+Displays a personalized movie recommendation based on user preferences.
+Uses a custom manager to select a movie that matches the user's favorite 
+genres, actors, and directors. It tracks previously skipped or viewed movies 
+within the session, passing their IDs to the manager to exclude them from 
+recommendations.
+"""
 @login_required
 def index(request):
-  current_user = request.user
-  user_with_prefs = User.objects.prefetch_related(
-    "favorite_genres",
-    "favorite_directors",
-    "favorite_actors"
-  ).get(pk=current_user.pk)
+    """
+    Displays the main page and a personalized movie recommendation.
+    Uses a custom manager to select a movie that matches the user's favorite
+    genres, actors, and directors. It tracks previously skipped or viewed movies
+    within the session, passing their IDs to the manager to exclude them from
+    recommendations. If all recommendations are exhausted, the session history
+    is reset to loop the suggestions from the beginning.
+    """
+    current_user = request.user
+    user_with_prefs = User.objects.prefetch_related(
+        "favorite_genres",
+        "favorite_directors",
+        "favorite_actors"
+    ).get(pk=current_user.pk)
 
-  if (
-    not user_with_prefs.favorite_genres.exists()
-    and not user_with_prefs.favorite_directors.exists()
-    and not user_with_prefs.favorite_actors.exists()
-  ):
-    return redirect("set_preferences")
+    # Redirect users without any preferences to the initial setup page
+    if (
+            not user_with_prefs.favorite_genres.exists()
+            and not user_with_prefs.favorite_directors.exists()
+            and not user_with_prefs.favorite_directors.exists()
+    ):
+        return redirect("set_preferences")
 
-  if "session_seen_movies" not in request.session:
-    request.session["session_seen_movies"] = []
+    if "session_seen_movies" not in request.session:
+        request.session["session_seen_movies"] = []
 
-  if request.method == "POST":
-    current_movie_id = request.POST.get("movie_id")
-    if current_movie_id:
-      current_movie = int(current_movie_id)
-      seen_list = request.session.get("session_seen_movies", [])
-      if current_movie not in seen_list:
-        seen_list.append(current_movie)
-        request.session["session_seen_movies"] = seen_list
-        request.session.modified = True
-
-        if request.headers.get("HX-Request"):
-          recommended_movies = Movie.objects.recommended_for_user(user_with_prefs, request.session["session_seen_movies"])
-          if not recommended_movies.exists():
-            request.session["session_seen_movies"] = []
-            request.session.modified = True
-            recommended_movies = Movie.objects.recommended_for_user(user_with_prefs, [])
-          context = {
-            "selected_movie": recommended_movies.first(),
-          }
-          return render(request, "partials/movie_card.html", context=context)
+    # Handle POST request to update session with skipped movie
+    if request.method == "POST":
+        current_movie_id = request.POST.get("movie_id")
+        if current_movie_id:
+            current_movie = int(current_movie_id)
+            seen_list = request.session.get("session_seen_movies", [])
+            if current_movie not in seen_list:
+                seen_list.append(current_movie)
+                request.session["session_seen_movies"] = seen_list
+                request.session.modified = True
 
         return redirect("index")
 
-  recommended_movies = Movie.objects.recommended_for_user(user_with_prefs, request.session["session_seen_movies"])
+    # Centralized recommendation logic for both initial load and HTMX partials
+    recommended_movies = Movie.objects.recommended_for_user(
+        user_with_prefs,
+        request.session["session_seen_movies"]
+    )
 
-  if not recommended_movies.exists():
-    request.session["session_seen_movies"] = []
-    request.session.modified = True
-    return redirect("index")
+    # Reset session history if no movies are left to recommend
+    if not recommended_movies.exists():
+        request.session["session_seen_movies"] = []
+        request.session.modified = True
+        recommended_movies = Movie.objects.recommended_for_user(user_with_prefs, [])
 
-  context = {
-    "selected_movie": recommended_movies.first(),
-  }
-  return render(request, "index.html", context=context)
+    context = {
+        "selected_movie": recommended_movies.first(),
+    }
+
+    # Handle HTMX partial updates for smooth, page-refresh-free movie skipping.
+    if request.headers.get("HX-Request"):
+        return render(request, "partials/movie_card.html", context=context)
+
+    return render(request, "index.html", context=context)
 
 class SetPreferencesView(LoginRequiredMixin,View):
     template_name = "set_preferences.html"
