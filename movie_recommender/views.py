@@ -1,3 +1,5 @@
+import random
+
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
@@ -5,6 +7,7 @@ from django.db.models import Q, Count
 from django.shortcuts import render, redirect
 from django.views import View
 
+from movie_recommender.forms import SetPreferencesForm
 from movie_recommender.models import Movie
 from movie_recommender.queryset_manager import MovieQuerySet
 
@@ -49,9 +52,67 @@ def index(request):
     context = {
         "selected_movie": recommended_movies.first(),
     }
-    return render(request, "index.html", context)
+    return render(request, "index.html", context=context)
 
 class SetPreferencesView(LoginRequiredMixin,View):
+    template_name = "set_preferences.html"
+
+    def _get_random_movie(self):
+        all_movies = Movie.objects.all()
+        return random.sample(all_movies(min(len(all_movies), 10)))
+
+    def get(self, request):
+        random_movies = self._get_random_movie()
+        form = SetPreferencesForm()
+        form.fields["chosen_movies"].queryset = Movie.objects.filter(id__in=[m.id for m in random_movies])
+        movies_with_widgets = list(zip(random_movies, form["chosen_movies"]))
+
+        context = {
+            "form": form,
+            "movies_with_widgets": movies_with_widgets
+        }
+        return render(request, self.template_name, context=context)
+
+    def post(self, request):
+        form = SetPreferencesForm(request.POST)
+        form.fields["chosen_movies"].queryset = Movie.objects.prefetch_related(
+            "genres",
+            "directors",
+            "actors"
+        )
+        if form.is_valid():
+            chosen_movies = form.cleaned_data["chosen_movies"]
+            user = request.user
+
+            all_genres = []
+            all_directors = []
+            all_actors = []
+
+            for movie in chosen_movies:
+                user.watched_movies.add(movie)
+                all_genres.extend(movie.genre.all())
+                all_directors.extend(movie.director.all())
+                all_actors.extend(movie.actor.all())
+
+            user.favorite_genres.add(*all_genres)
+            user.favorite_directors.add(*all_directors)
+            user.favorite_actors.add(*all_actors)
+
+            return redirect("index")
+
+        random_movies = self._get_random_movie()
+        form = SetPreferencesForm()
+        form.fields["chosen_movies"].queryset = Movie.objects.filter(id__in=[m.id for m in random_movies])
+        movies_with_widgets = list(zip(random_movies, form["chosen_movies"]))
+
+        context = {
+            "form": form,
+            "movies_with_widgets": movies_with_widgets,
+            "errors": form.errors.get("chosen_movies", [""])[0]
+        }
+        return render(request, self.template_name, context=context)
+
+
 
 
 
