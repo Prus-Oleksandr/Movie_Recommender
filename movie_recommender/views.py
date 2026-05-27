@@ -2,16 +2,14 @@ import random
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.models import User
-from django.db.models import Q, Count
+from django.contrib.auth import get_user_model
 from django.shortcuts import render, redirect
 from django.views import View
 
 from movie_recommender.forms import SetPreferencesForm
 from movie_recommender.models import Movie
-from movie_recommender.queryset_manager import MovieQuerySet
 
-
+User = get_user_model()
 @login_required
 def index(request):
     current_user = request.user
@@ -112,6 +110,9 @@ class SetPreferencesView(LoginRequiredMixin,View):
         }
         return render(request, self.template_name, context=context)
 
+class ManagePreferencesView(View):
+    template_name = "manage_preferences.html"
+    pass
 
 
 
