@@ -1,6 +1,9 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from movie_recommender.queryset_manager import MovieQuerySet
+
+
 class Actor(models.Model):
     full_name = models.CharField(max_length=100, db_index=True)
 
@@ -27,6 +30,7 @@ class Movie(models.Model):
     directors = models.ManyToManyField(Director,  related_name="movies")
     actors = models.ManyToManyField(Actor, related_name="movies")
     poster = models.URLField(max_length=500, null=True, blank=True)
+    objects = MovieQuerySet.as_manager()
 
     def __str__(self):
         return f"{self.title}({str(self.release_year)})"
