@@ -3,7 +3,7 @@
 {% block title %}Initial Setup — Movie Recommender{% endblock %}
 
 {% block content %}
-<div class="container text-light my-4" data-bs-theme="dark" hx-boost="true">
+<div class="container text-light my-4" data-bs-theme="dark">
 
   <div class="text-center mb-4">
     <h3 class="fw-bold text-white mb-0 fs-3">Welcome to Movie Recommender!</h3>
@@ -67,6 +67,11 @@
   }
   .custom-preference-card:hover {
     transform: translateY(-3px);
+  }
+
+  input[type="checkbox"]:checked + label {
+    border-color: #ffc107 !important;
+    background-color: rgba(255, 193, 7, 0.1);
   }
 </style>
 {% endblock %}
