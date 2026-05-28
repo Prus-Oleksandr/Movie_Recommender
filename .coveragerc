@@ -1,0 +1,11 @@
+[run]
+source = .
+omit =
+    *__init__.py
+    *apps.py
+    *migrations*
+    *settings*
+    *wsgi*
+    *asgi*
+    *admin.py
+    manage.py

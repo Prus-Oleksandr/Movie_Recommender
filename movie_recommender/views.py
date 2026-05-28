@@ -1,8 +1,8 @@
 import random
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -20,6 +20,8 @@ genres, actors, and directors. It tracks previously skipped or viewed movies
 within the session, passing their IDs to the manager to exclude them from 
 recommendations.
 """
+
+
 @login_required
 def index(request):
     """
@@ -32,16 +34,14 @@ def index(request):
     """
     current_user = request.user
     user_with_prefs = User.objects.prefetch_related(
-        "favorite_genres",
-        "favorite_directors",
-        "favorite_actors"
+        "favorite_genres", "favorite_directors", "favorite_actors"
     ).get(pk=current_user.pk)
 
     # Redirect users without any preferences to the initial setup page
     if (
-            not user_with_prefs.favorite_genres.exists()
-            and not user_with_prefs.favorite_directors.exists()
-            and not user_with_prefs.favorite_directors.exists()
+        not user_with_prefs.favorite_genres.exists()
+        and not user_with_prefs.favorite_directors.exists()
+        and not user_with_prefs.favorite_directors.exists()
     ):
         return redirect("set_preferences")
 
@@ -63,15 +63,16 @@ def index(request):
 
     # Centralized recommendation logic for both initial load and HTMX partials
     recommended_movies = Movie.objects.recommended_for_user(
-        user_with_prefs,
-        request.session["session_seen_movies"]
+        user_with_prefs, request.session["session_seen_movies"]
     )
 
     # Reset session history if no movies are left to recommend
     if not recommended_movies.exists():
         request.session["session_seen_movies"] = []
         request.session.modified = True
-        recommended_movies = Movie.objects.recommended_for_user(user_with_prefs, [])
+        recommended_movies = Movie.objects.recommended_for_user(
+            user_with_prefs, []
+        )
 
     context = {
         "selected_movie": recommended_movies.first(),
@@ -91,12 +92,18 @@ POST request processes the chosen selection, extracts associated metadata
 (genres, actors, and directors), and saves these attributes to the user's profile 
 to build their personal preferences.
 """
+
+
 class SetPreferencesView(LoginRequiredMixin, View):
     template_name = "set_preferences.html"
 
     def _get_random_movie(self):
-        watched_ids = self.request.user.watched_movies.values_list('id', flat=True)
-        random_movies = Movie.objects.exclude(id__in=watched_ids).order_by('?')[:10]
+        watched_ids = self.request.user.watched_movies.values_list(
+            "id", flat=True
+        )
+        random_movies = Movie.objects.exclude(
+            id__in=watched_ids
+        ).order_by("?")[:10]
         return random_movies
 
     def _get_form_context(self, form=None):
@@ -116,7 +123,8 @@ class SetPreferencesView(LoginRequiredMixin, View):
         return {
             "form": form,
             "movies_with_widgets": movies_with_widgets,
-            "errors": form.errors.get("chosen_movies", [""])[0] if form.errors else ""
+            "errors": form.errors.get("chosen_movies", [""])[0]
+            if form.errors else "",
         }
 
     def get(self, request):
@@ -149,21 +157,31 @@ class SetPreferencesView(LoginRequiredMixin, View):
             return redirect("index")
 
         # If invalid, pass the form with errors back to the context helper
-        return render(request, self.template_name, context=self._get_form_context(form=form))
+        return render(
+            request, self.template_name, context=self._get_form_context(form=form)
+        )
+
+
+"""
+Handles user preference management, allowing users to view, search,
+add, and remove their favorite genres, actors, and directors.
+Uses one form to search across different preferences by passing the search type.
+Uses htmx to dynamically switch between search modes. 
+Forms a complex context with a dictionary to use a loop in the template and not duplicate logic.
+"""
+
 
 class ManagePreferencesView(LoginRequiredMixin, View):
     template_name = "manage_preferences.html"
 
     def get(self, request):
         user = User.objects.prefetch_related(
-            "favorite_genres",
-            "favorite_directors",
-            "favorite_actors"
+            "favorite_genres", "favorite_directors", "favorite_actors"
         ).get(id=request.user.id)
 
         results = []
         search_mode = request.GET.get("search_mode")
-
+        # Handle dynamic search: validate input and filter the requested model
         if "query" in request.GET and "type" in request.GET:
             form = SearchPreferencesForm(request.GET)
             if form.is_valid():
@@ -178,9 +196,21 @@ class ManagePreferencesView(LoginRequiredMixin, View):
 
         context = {
             "sections": [
-                {"title": "Favorite Genres", "type": "genre", "items": user.favorite_genres.all()},
-                {"title": "Favorite Actors", "type": "actor", "items": user.favorite_actors.all()},
-                {"title": "Favorite Directors", "type": "director", "items": user.favorite_directors.all()},
+                {
+                    "title": "Favorite Genres",
+                    "type": "genre",
+                    "items": user.favorite_genres.all(),
+                },
+                {
+                    "title": "Favorite Actors",
+                    "type": "actor",
+                    "items": user.favorite_actors.all(),
+                },
+                {
+                    "title": "Favorite Directors",
+                    "type": "director",
+                    "items": user.favorite_directors.all(),
+                },
             ],
             "results": results,
             "search_mode": search_mode,
@@ -200,7 +230,7 @@ class ManagePreferencesView(LoginRequiredMixin, View):
 
         item_id = int(item_id)
         user: User = request.user
-
+        ## Process preference changes: update Many-to-Many relationships for the user
         try:
             if action == "remove_genre":
                 user.favorite_genres.remove(item_id)
@@ -217,9 +247,10 @@ class ManagePreferencesView(LoginRequiredMixin, View):
 
         except (ObjectDoesNotExist, ValueError):
             if request.headers.get("HX-Request"):
-                return HttpResponse("Помилка", status=400)
+                return HttpResponse("Error", status=400)
             return redirect("manage_preferences")
 
+        # Trigger UI update: silent for removal, page reload for addition to sync state
         if request.headers.get("HX-Request"):
             if "remove" in action:
                 return HttpResponse("")
