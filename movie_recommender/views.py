@@ -95,8 +95,9 @@ class SetPreferencesView(LoginRequiredMixin, View):
     template_name = "set_preferences.html"
 
     def _get_random_movie(self):
-        all_movies = list(Movie.objects.all())
-        return random.sample(all_movies, min(len(all_movies), 10))
+        watched_ids = self.request.user.watched_movies.values_list('id', flat=True)
+        random_movies = Movie.objects.exclude(id__in=watched_ids).order_by('?')[:10]
+        return random_movies
 
     def _get_form_context(self, form=None):
         """Helper to prepare the form and random movie selection for the template."""
