@@ -40,18 +40,10 @@ class Movie(models.Model):
 
 
 class Watcher(AbstractUser):
-    favorite_genres = models.ManyToManyField(
-        Genre, related_name="watchers"
-    )
-    favorite_directors = models.ManyToManyField(
-        Director, related_name="watchers"
-    )
-    favorite_actors = models.ManyToManyField(
-        Actor, related_name="watchers"
-    )
-    watched_movies = models.ManyToManyField(
-        Movie, related_name="watched_movies"
-    )
+    favorite_genres = models.ManyToManyField(Genre, related_name="watchers")
+    favorite_directors = models.ManyToManyField(Director, related_name="watchers")
+    favorite_actors = models.ManyToManyField(Actor, related_name="watchers")
+    watched_movies = models.ManyToManyField(Movie, related_name="watched_movies")
 
     def __str__(self):
         return self.username

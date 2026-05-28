@@ -5,9 +5,7 @@ from django.db.models import Q, Count, F
 class MovieQuerySet(models.QuerySet):
 
     def available_for_user(self, user, session_seen_movies):
-        watched_movies_ids = user.watched_movies.values_list(
-            "id", flat=True
-        )
+        watched_movies_ids = user.watched_movies.values_list("id", flat=True)
 
         excluded_ids = list(watched_movies_ids) + session_seen_movies
 
@@ -44,9 +42,7 @@ class MovieQuerySet(models.QuerySet):
             )
             .annotate(
                 total_matches=(
-                    F("genres_matches")
-                    + F("actors_matches")
-                    + F("directors_matches")
+                    F("genres_matches") + F("actors_matches") + F("directors_matches")
                 )
             )
             .order_by("-total_matches", "?")

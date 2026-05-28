@@ -13,9 +13,7 @@ class SetPreferencesForm(forms.Form):
     def clean_chosen_movies(self):
         chosen_movies = self.cleaned_data.get("chosen_movies")
         if chosen_movies and (len(chosen_movies) < 3 or len(chosen_movies) > 7):
-            raise forms.ValidationError(
-                "Please select between 3 and 7 movies"
-            )
+            raise forms.ValidationError("Please select between 3 and 7 movies")
         return chosen_movies
 
 

@@ -1,5 +1,3 @@
-import random
-
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -70,9 +68,7 @@ def index(request):
     if not recommended_movies.exists():
         request.session["session_seen_movies"] = []
         request.session.modified = True
-        recommended_movies = Movie.objects.recommended_for_user(
-            user_with_prefs, []
-        )
+        recommended_movies = Movie.objects.recommended_for_user(user_with_prefs, [])
 
     context = {
         "selected_movie": recommended_movies.first(),
@@ -98,12 +94,8 @@ class SetPreferencesView(LoginRequiredMixin, View):
     template_name = "set_preferences.html"
 
     def _get_random_movie(self):
-        watched_ids = self.request.user.watched_movies.values_list(
-            "id", flat=True
-        )
-        random_movies = Movie.objects.exclude(
-            id__in=watched_ids
-        ).order_by("?")[:10]
+        watched_ids = self.request.user.watched_movies.values_list("id", flat=True)
+        random_movies = Movie.objects.exclude(id__in=watched_ids).order_by("?")[:10]
         return random_movies
 
     def _get_form_context(self, form=None):
@@ -123,8 +115,7 @@ class SetPreferencesView(LoginRequiredMixin, View):
         return {
             "form": form,
             "movies_with_widgets": movies_with_widgets,
-            "errors": form.errors.get("chosen_movies", [""])[0]
-            if form.errors else "",
+            "errors": form.errors.get("chosen_movies", [""])[0] if form.errors else "",
         }
 
     def get(self, request):

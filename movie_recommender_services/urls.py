@@ -22,10 +22,16 @@ from django.views.generic import RedirectView
 from movie_recommender.views import index, SetPreferencesView, ManagePreferencesView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path("admin/", admin.site.urls),
     path("", index, name="index"),
     path("set_preferences/", SetPreferencesView.as_view(), name="set_preferences"),
-    path("accounts/3rdparty", RedirectView.as_view(pattern_name="index",permanent=False)),
+    path(
+        "accounts/3rdparty", RedirectView.as_view(pattern_name="index", permanent=False)
+    ),
     path("accounts/", include("allauth.urls")),
-    path("manage_preferences/", ManagePreferencesView.as_view(), name="manage_preferences"),
+    path(
+        "manage_preferences/",
+        ManagePreferencesView.as_view(),
+        name="manage_preferences",
+    ),
 ]
