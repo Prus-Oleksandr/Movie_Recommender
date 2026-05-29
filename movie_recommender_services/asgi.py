@@ -1,5 +1,5 @@
 """
-ASGI config for djangoproject1 project.
+ASGI config for movie_recommender_services project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 
@@ -11,6 +11,6 @@ import os
 
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'djangoproject1.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'movie_recommender_services.settings.prod')
 
 application = get_asgi_application()
