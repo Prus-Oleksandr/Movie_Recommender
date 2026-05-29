@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid px-4 px-md-5 my-5">
+
+  <div class="row justify-content-center">
+    <div class="col-xl-11">
+
+      <div class="text-center mb-5 mx-auto" style="max-width: 700px;">
+        <h2 class="fw-bold mb-2 text-white">Manage Your Preferences</h2>
+        <p class="text-secondary mb-3">Add genres, actors, and directors to personalize your movie recommendations.</p>
+        <a href="{% url 'set_preferences' %}" class="btn btn-md btn-outline-warning fw-semibold rounded-pill px-4 py-2">
+          <i class="bi bi-film me-2"></i> Add more movies you like
+        </a>
+      </div>
+
+      <div id="search-area" class="mb-5">
+        {% include "partials/search_block.html" %}
+      </div>
+
+      <div class="row g-4 md-g-5 mt-2">
+        {% for section in sections %}
+          <div class="col-md-4">
+            <h5 class="text-primary border-bottom border-secondary pb-3 mb-0 fw-bold">{{ section.title }}</h5>
+
+            <div class="custom-scroll-list pe-2" style="max-height: 320px; overflow-y: auto;">
+              {% for item in section.items %}
+                <div id="item-{{ section.type }}-{{ item.id }}" class="d-flex justify-content-between align-items-center py-2.5 border-bottom border-secondary border-opacity-50 item-row">
+                  <span class="text-light-50">
+                    {% if section.type == "genre" %}{{ item.name }}{% else %}{{ item.full_name }}{% endif %}
+                  </span>
+
+                  <form hx-post="{% url 'manage_preferences' %}"
+                        hx-target="#item-{{ section.type }}-{{ item.id }}"
+                        hx-swap="outerHTML swap:300ms"
+                        class="m-0">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="remove_{{ section.type }}">
+                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                    <button type="submit" class="btn btn-sm text-secondary hover-danger p-1">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </form>
+                </div>
+              {% empty %}
+                <div class="text-muted small py-3">No preferences added yet.</div>
+              {% endfor %}
+            </div>
+
+          </div>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  .item-row.htmx-swapping {
+    opacity: 0;
+    transform: translateX(20px);
+    transition: all 300ms ease-in-out;
+  }
+
+  .custom-scroll-list::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scroll-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scroll-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+  }
+  .custom-scroll-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  .hover-danger:hover {
+    color: #dc3545 !important;
+    background: transparent;
+  }
+</style>
+{% endblock %}
