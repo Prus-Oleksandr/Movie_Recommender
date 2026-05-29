@@ -33,12 +33,12 @@ class IndexView(LoginRequiredMixin, View):
         )
 
         if not recommended_movies.exists():
-            request.session["session_seen_movies"] = []
-            request.session.modified = True
-            recommended_movies = Movie.objects.recommended_for_user(user_with_prefs, [])
+            selected_movie = None
+        else:
+            selected_movie = recommended_movies.first()
 
         context = {
-            "selected_movie": recommended_movies.first(),
+            "selected_movie": selected_movie,
         }
 
         if request.headers.get("HX-Request"):
