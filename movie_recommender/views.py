@@ -11,31 +11,14 @@ from movie_recommender.models import Movie, Genre, Director, Actor
 
 User = get_user_model()
 
-"""
-Displays a personalized movie recommendation based on user preferences.
-Uses a custom manager to select a movie that matches the user's favorite 
-genres, actors, and directors. It tracks previously skipped or viewed movies 
-within the session, passing their IDs to the manager to exclude them from 
-recommendations.
-"""
-
 
 @login_required
 def index(request):
-    """
-    Displays the main page and a personalized movie recommendation.
-    Uses a custom manager to select a movie that matches the user's favorite
-    genres, actors, and directors. It tracks previously skipped or viewed movies
-    within the session, passing their IDs to the manager to exclude them from
-    recommendations. If all recommendations are exhausted, the session history
-    is reset to loop the suggestions from the beginning.
-    """
     current_user = request.user
     user_with_prefs = User.objects.prefetch_related(
         "favorite_genres", "favorite_directors", "favorite_actors"
     ).get(pk=current_user.pk)
 
-    # Redirect users without any preferences to the initial setup page
     if (
         not user_with_prefs.favorite_genres.exists()
         and not user_with_prefs.favorite_directors.exists()
@@ -46,7 +29,6 @@ def index(request):
     if "session_seen_movies" not in request.session:
         request.session["session_seen_movies"] = []
 
-    # Handle POST request to update session with skipped movie
     if request.method == "POST":
         current_movie_id = request.POST.get("movie_id")
         if current_movie_id:
@@ -59,12 +41,10 @@ def index(request):
 
         return redirect("index")
 
-    # Centralized recommendation logic for both initial load and HTMX partials
     recommended_movies = Movie.objects.recommended_for_user(
         user_with_prefs, request.session["session_seen_movies"]
     )
 
-    # Reset session history if no movies are left to recommend
     if not recommended_movies.exists():
         request.session["session_seen_movies"] = []
         request.session.modified = True
@@ -74,20 +54,10 @@ def index(request):
         "selected_movie": recommended_movies.first(),
     }
 
-    # Handle HTMX partial updates for smooth, page-refresh-free movie skipping.
     if request.headers.get("HX-Request"):
         return render(request, "partials/movie_card.html", context=context)
 
     return render(request, "index.html", context=context)
-
-
-"""
-Displays a list of 10 random movies for the user to select their favorites.
-The GET request renders a form containing these movies. Upon submission, the 
-POST request processes the chosen selection, extracts associated metadata 
-(genres, actors, and directors), and saves these attributes to the user's profile 
-to build their personal preferences.
-"""
 
 
 class SetPreferencesView(LoginRequiredMixin, View):
@@ -99,17 +69,14 @@ class SetPreferencesView(LoginRequiredMixin, View):
         return random_movies
 
     def _get_form_context(self, form=None):
-        """Helper to prepare the form and random movie selection for the template."""
         random_movies = self._get_random_movie()
         if not form:
             form = SetPreferencesForm()
 
-        # Set the queryset to only include the randomly selected movies
         form.fields["chosen_movies"].queryset = Movie.objects.filter(
             id__in=[m.id for m in random_movies]
         )
 
-        # Connect movies to widgets for the template
         movies_with_widgets = list(zip(random_movies, form["chosen_movies"]))
 
         return {
@@ -124,7 +91,6 @@ class SetPreferencesView(LoginRequiredMixin, View):
     def post(self, request):
         form = SetPreferencesForm(request.POST)
 
-        # Allow the form to validate against all movies that could have been selected
         form.fields["chosen_movies"].queryset = Movie.objects.all()
 
         if form.is_valid():
@@ -147,19 +113,9 @@ class SetPreferencesView(LoginRequiredMixin, View):
 
             return redirect("index")
 
-        # If invalid, pass the form with errors back to the context helper
         return render(
             request, self.template_name, context=self._get_form_context(form=form)
         )
-
-
-"""
-Handles user preference management, allowing users to view, search,
-add, and remove their favorite genres, actors, and directors.
-Uses one form to search across different preferences by passing the search type.
-Uses htmx to dynamically switch between search modes. 
-Forms a complex context with a dictionary to use a loop in the template and not duplicate logic.
-"""
 
 
 class ManagePreferencesView(LoginRequiredMixin, View):
@@ -172,7 +128,6 @@ class ManagePreferencesView(LoginRequiredMixin, View):
 
         results = []
         search_mode = request.GET.get("search_mode")
-        # Handle dynamic search: validate input and filter the requested model
         if "query" in request.GET and "type" in request.GET:
             form = SearchPreferencesForm(request.GET)
             if form.is_valid():
@@ -221,7 +176,6 @@ class ManagePreferencesView(LoginRequiredMixin, View):
 
         item_id = int(item_id)
         user: User = request.user
-        ## Process preference changes: update Many-to-Many relationships for the user
         try:
             if action == "remove_genre":
                 user.favorite_genres.remove(item_id)
@@ -241,7 +195,6 @@ class ManagePreferencesView(LoginRequiredMixin, View):
                 return HttpResponse("Error", status=400)
             return redirect("manage_preferences")
 
-        # Trigger UI update: silent for removal, page reload for addition to sync state
         if request.headers.get("HX-Request"):
             if "remove" in action:
                 return HttpResponse("")
