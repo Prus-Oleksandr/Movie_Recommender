@@ -19,11 +19,11 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
 
-from movie_recommender.views import index, SetPreferencesView, ManagePreferencesView
+from movie_recommender.views import SetPreferencesView, ManagePreferencesView, IndexView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", index, name="index"),
+    path("", IndexView.as_view(), name="index"),
     path("set_preferences/", SetPreferencesView.as_view(), name="set_preferences"),
     path(
         "accounts/3rdparty", RedirectView.as_view(pattern_name="index", permanent=False)

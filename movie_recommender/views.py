@@ -12,24 +12,41 @@ from movie_recommender.models import Movie, Genre, Director, Actor
 User = get_user_model()
 
 
-@login_required
-def index(request):
-    current_user = request.user
-    user_with_prefs = User.objects.prefetch_related(
-        "favorite_genres", "favorite_directors", "favorite_actors"
-    ).get(pk=current_user.pk)
+class IndexView(LoginRequiredMixin, View):
+    def get(self, request):
+        user_with_prefs = User.objects.prefetch_related(
+            "favorite_genres", "favorite_directors", "favorite_actors", "watched_movies",
+        ).get(pk=request.user.pk)
 
-    if (
-        not user_with_prefs.favorite_genres.exists()
-        and not user_with_prefs.favorite_directors.exists()
-        and not user_with_prefs.favorite_directors.exists()
-    ):
-        return redirect("set_preferences")
+        if (
+            not user_with_prefs.favorite_genres.exists()
+            and not user_with_prefs.favorite_directors.exists()
+            and not user_with_prefs.favorite_directors.exists()
+        ):
+            return redirect("set_preferences")
 
-    if "session_seen_movies" not in request.session:
-        request.session["session_seen_movies"] = []
+        if "session_seen_movies" not in request.session:
+            request.session["session_seen_movies"] = []
 
-    if request.method == "POST":
+        recommended_movies = Movie.objects.recommended_for_user(
+            user_with_prefs, request.session["session_seen_movies"]
+        )
+
+        if not recommended_movies.exists():
+            request.session["session_seen_movies"] = []
+            request.session.modified = True
+            recommended_movies = Movie.objects.recommended_for_user(user_with_prefs, [])
+
+        context = {
+            "selected_movie": recommended_movies.first(),
+        }
+
+        if request.headers.get("HX-Request"):
+            return render(request, "partials/movie_card.html", context=context)
+
+        return render(request, "index.html", context=context)
+
+    def post(self, request):
         current_movie_id = request.POST.get("movie_id")
         if current_movie_id:
             current_movie = int(current_movie_id)
@@ -40,24 +57,6 @@ def index(request):
                 request.session.modified = True
 
         return redirect("index")
-
-    recommended_movies = Movie.objects.recommended_for_user(
-        user_with_prefs, request.session["session_seen_movies"]
-    )
-
-    if not recommended_movies.exists():
-        request.session["session_seen_movies"] = []
-        request.session.modified = True
-        recommended_movies = Movie.objects.recommended_for_user(user_with_prefs, [])
-
-    context = {
-        "selected_movie": recommended_movies.first(),
-    }
-
-    if request.headers.get("HX-Request"):
-        return render(request, "partials/movie_card.html", context=context)
-
-    return render(request, "index.html", context=context)
 
 
 class SetPreferencesView(LoginRequiredMixin, View):
