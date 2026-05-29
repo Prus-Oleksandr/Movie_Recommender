@@ -4,7 +4,7 @@ Django project for recommending movies based on user preferences.
 
 ## Check it out!
 
-https://place_for_render_link
+https://movie-recommender-vduj.onrender.com
 
 ## Installation
 
