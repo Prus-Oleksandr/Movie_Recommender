@@ -1,59 +1,9 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-
-from .forms import SetPreferencesForm
-from .models import Movie, Genre, Actor, Director
+from movie_recommender.models import Movie, Genre, Actor, Director
 
 User = get_user_model()
-
-
-class UnifiedModelsAndFormsTest(TestCase):
-    def setUp(self):
-        self.genre = Genre.objects.create(name="Sci-Fi")
-        self.movie1 = Movie.objects.create(
-            title="Movie 1", description="D1", release_year=2000
-        )
-        self.movie2 = Movie.objects.create(
-            title="Movie 2", description="D2", release_year=2001
-        )
-        self.movie3 = Movie.objects.create(
-            title="Movie 3", description="D3", release_year=2002
-        )
-
-    def test_model_string_representations(self):
-        self.assertEqual(str(self.genre), "Sci-Fi")
-        self.assertEqual(str(self.movie1), "Movie 1(2000)")
-
-    def test_set_preferences_form_validation(self):
-        valid_data = {"chosen_movies": [self.movie1.id, self.movie2.id, self.movie3.id]}
-        invalid_data = {"chosen_movies": [self.movie1.id, self.movie2.id]}
-
-        self.assertTrue(SetPreferencesForm(data=valid_data).is_valid())
-        self.assertFalse(SetPreferencesForm(data=invalid_data).is_valid())
-
-
-class MovieQuerySetCustomTest(TestCase):
-    def setUp(self):
-        self.genre_action = Genre.objects.create(name="Action")
-        self.movie_best = Movie.objects.create(
-            title="Fight Club", description="Cool", release_year=1999
-        )
-        self.movie_best.genres.add(self.genre_action)
-        self.movie_bad = Movie.objects.create(
-            title="Notebook", description="Sad", release_year=2004
-        )
-
-        self.user = User.objects.create_user(
-            username="moviefan", password="password123"
-        )
-        self.user.favorite_genres.add(self.genre_action)
-
-    def test_recommended_for_user_filters_and_orders(self):
-        queryset = Movie.objects.all().recommended_for_user(self.user, [])
-        self.assertIn(self.movie_best, queryset)
-        self.assertNotIn(self.movie_bad, queryset)
-
 
 class IndexViewTest(TestCase):
     def setUp(self):
@@ -63,9 +13,7 @@ class IndexViewTest(TestCase):
         )
         self.movie.genres.add(self.genre)
         self.user = User.objects.create_user(username="watcher", password="password123")
-        self.user.favorite_genres.add(
-            self.genre
-        )  # Обов'язково додаємо жанр, щоб пройти перевірку
+        self.user.favorite_genres.add(self.genre)
         self.url = reverse("index")
 
     def test_index_redirects_user_without_preferences(self):
@@ -78,6 +26,7 @@ class IndexViewTest(TestCase):
 
     def test_index_post_updates_session_and_redirects(self):
         self.client.login(username="watcher", password="password123")
+        # Тепер POST відправляється на IndexView
         response = self.client.post(self.url, {"movie_id": str(self.movie.id)})
         self.assertIn(self.movie.id, self.client.session["session_seen_movies"])
         self.assertRedirects(response, self.url)
@@ -88,7 +37,6 @@ class IndexViewTest(TestCase):
         response = self.client.get(self.url, **headers)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "partials/movie_card.html")
-
 
 class SetPreferencesViewTest(TestCase):
     def setUp(self):
@@ -122,7 +70,6 @@ class SetPreferencesViewTest(TestCase):
         response = self.client.get(self.url)
         form = response.context["form"]
         self.assertLessEqual(form.fields["chosen_movies"].queryset.count(), 10)
-
 
 class ManagePreferencesViewTest(TestCase):
     def setUp(self):
