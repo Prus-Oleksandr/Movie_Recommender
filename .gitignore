@@ -6,7 +6,6 @@ db.sqlite3
 .idea/
 .venv/
 .venv
-data.json
 .coverage
 .coveragerc
 replacement.txt
