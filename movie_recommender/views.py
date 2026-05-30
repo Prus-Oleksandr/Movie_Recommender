@@ -42,8 +42,13 @@ class IndexView(LoginRequiredMixin, View):
         }
 
         if request.headers.get("HX-Request"):
+            if selected_movie is None:
+                from django.http import HttpResponse
+                response = HttpResponse()
+                response["HX-Redirect"] = "/"
+                return response
             return render(request, "partials/movie_card.html", context=context)
-
+            
         return render(request, "index.html", context=context)
 
     def post(self, request):
